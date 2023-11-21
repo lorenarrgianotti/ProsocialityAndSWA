@@ -7,4 +7,4 @@ All analyses were done with the softwares "Brain Vision Analyzer", "Matlab", "R"
 
 The "Code" folder contains the scripts we used for the visualisation of the results.
 
-For further information or requests please contact: mirjam.studler@unibe.ch.com or lorena.gianotti@unibe.ch
+For further information or requests please contact: mirjam.studler@unibe.ch or lorena.gianotti@unibe.ch
