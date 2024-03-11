@@ -1,0 +1,346 @@
+---
+title: "ProsocialityAndSWA: Statistics and Figures"
+output: 
+  html_document:
+    code_folding: hide 
+    toc: true
+    toc_float: true
+    toc_depth: 3
+    number_sections: true
+    df_print: paged 
+
+
+params: 
+  printcode: TRUE 
+  
+  # Paths and Filenames to define
+  filePathPGGdata: "R:/Sleep_Project2_2022/papers/SWA_PGG/JNeurosci/GitHubData/PGGdata_forR.xlsx" # Adapt to folder where PGGdata_forR is stored
+  resultsPath: "R:/Sleep_Project2_2022/papers/SWA_PGG/JNeurosci/GitHubData/" # Adapt to folder where you want to save the Outputs
+  
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE, cache = TRUE, fig.align = "center", warning=F, message=F)
+
+library(readxl)
+library(ggplot2)
+library(dplyr)
+library(Hmisc)
+library(grid)
+library(ppcor)
+library(ggpubr)
+library(tidyr)
+
+# Set Figure Parameters
+sizef = 10 # Text-Size Figure 1 
+sizef2 = 12
+
+```
+
+```{r ReadInData, include = FALSE}
+PGGdata <- read_excel(params$filePathPGGdata, sheet=1)
+
+```
+
+# Behavioral results and sleep parameters
+## Figure 2
+```{r Figure2ContributionMinusBeliefScore}
+
+#######################################################
+# Figure 2: Histogram Contribution-minus-belief score #
+#######################################################
+
+ConMinusBelief.hist <- 
+  ggplot(data=PGGdata, aes(PGG_ContributionMinusBelief)) + 
+  geom_bar (col="black", fill="grey", width=0.7) +
+  labs(x="Contribution-minus-belief score", y="Count") + 
+  theme_bw() +
+    theme (
+    axis.title.x = element_text(size=sizef),
+    axis.text.x = element_text(size=sizef),
+    axis.title.y = element_text(size=sizef),
+    axis.text.y = element_text(size=sizef)
+  ) 
+ConMinusBelief.hist
+
+# setwd(params$resultsPath)
+# jpeg("histogramm.jpg", res=300, unit="cm", width = 8, height = 6)
+# print(ConMinusBelief.hist)
+# dev.off()
+```
+Figure 2. Histogram depicting the distribution of the contribution-minus-belief score among all participants. Extended Data Figure 2-1 illustrates the contribution decisions and participants’ beliefs about the average contribution of the other participants, separately.
+
+<br><br>
+<br><br>
+## Table 1
+```{r ContributionMinusBeliefScoreStatisticsandTable1}
+
+# Statistics Contribution-minus-belief score
+statsContributionMinusBelief <- PGGdata|>
+  summarise(
+    Mean = round(mean(PGG_ContributionMinusBelief, na.rm = TRUE),2),
+    SD = round(sd(PGG_ContributionMinusBelief, na.rm = TRUE),2),
+    Maximum = max(PGG_ContributionMinusBelief, na.rm = TRUE),
+    Minimum = min(PGG_ContributionMinusBelief, na.rm = TRUE)
+  )
+
+knitr::kable(statsContributionMinusBelief, caption = "Statistics Contribution-minus-belief score")
+
+#############################
+# Table 1: Sleep Parameters #
+#############################
+
+CI_totSleep <- round(smean.cl.normal(PGGdata$totsleep_min, na.rm = TRUE), digits=1)
+CI_sleepEff_perc <- round(smean.cl.normal(PGGdata$sleepEff_perc, na.rm = TRUE),digits=1)
+CI_WASO <-  round(smean.cl.normal(PGGdata$waso_min, na.rm = TRUE),digits=1)
+CI_N1 <-  round(smean.cl.normal(PGGdata$n1_sleeptime_perc, na.rm = TRUE),digits=1)
+CI_N2 <-  round(smean.cl.normal(PGGdata$n2_sleeptime_perc, na.rm = TRUE),digits=1)
+CI_N3 <-  round(smean.cl.normal(PGGdata$n3_sleeptime_perc, na.rm = TRUE),digits=1)
+CI_REM <-  round(smean.cl.normal(PGGdata$rem_sleeptime_perc, na.rm = TRUE),digits=1)
+
+
+
+ciTableSleepParameters <- data.frame(
+  SleepParameter = c("Total sleep time [min]", "Sleep efficiency [%]", "Wake after sleep onset [min]", 
+               "Duration of N1 [% of total sleep time]", "Duration of N2 [% of total sleep time]", "Duration of N3 [% of total sleep time]", "Duration of REM [% of total sleep time]"),
+  Mean = c(CI_totSleep[1], CI_sleepEff_perc[1], CI_WASO[1], 
+                CI_N1[1], CI_N2[1], CI_N3[1], CI_REM[1]),
+  CI_Lower = c(CI_totSleep[2], CI_sleepEff_perc[2], CI_WASO[2], 
+                    CI_N1[2], CI_N2[2], CI_N3[2], CI_REM[2]),
+  CI_Upper = c(CI_totSleep[3], CI_sleepEff_perc[3], CI_WASO[3], 
+                   CI_N1[3], CI_N2[3], CI_N3[3], CI_REM[3]))
+
+knitr::kable(ciTableSleepParameters, caption = "Table 1", align = 'l')
+
+
+```
+Table 1: Mean with 95% CIs for total sleep time, sleep efficiency, wake after sleep onset, and duration of sleep stages for total sample (N = 54).
+
+<br><br>
+<br><br>
+
+# Brain Results
+## SWA across the whole night (Figure 3B)
+Correlation between SWA over the right TPJ and the Contribution-minus-belief score
+```{r wnSWAScalpContributionMinusBelief}
+
+# Prepare Data
+PGGdata$sex[PGGdata$sex == "male"] <- "0"  #rename 
+PGGdata$sex[PGGdata$sex == "female"] <- "1"  #rename
+PGGdata$sex <- as.numeric(PGGdata$sex)
+
+#####################
+# Figure 3: Panel B #
+#####################
+
+# Compute Correlation between meen SWA (log) in the significant electrodes that survived correction for multiple Testing (see MATLAB-Analysis)
+cor.test(PGGdata$SWA_TPJ, PGGdata$PGG_ContributionMinusBelief, "two.sided", "pearson")
+
+# Create Scatter Plot 
+text <- grobTree(textGrob("r(52) = 0.49, p = 0.00019", x=0.1,  y=0.9, hjust=0, gp=gpar(fontsize=sizef2)))
+
+SWA_TPJ_vs_ContributionMinusBelief <-
+  ggplot(PGGdata, aes(x=SWA_TPJ, y=PGG_ContributionMinusBelief)) +
+  geom_point(shape=16, size=2)  +  
+  theme_bw () +  
+  theme(panel.grid.major = element_blank(),  # remove grid lines
+        panel.grid.minor = element_blank()) +
+  stat_smooth(method=lm, colour="red", se=TRUE, alpha=0.2, fill="red")  +    # Add regression line
+  xlab("SWA over the right TPJ (log)") +
+  ylab("Contribution-minus-belief score") +
+  theme (
+    axis.title.x = element_text(size=sizef2),
+    axis.text.x = element_text(size=sizef2),
+    axis.title.y = element_text(size=sizef2),
+    axis.text.y = element_text(size=sizef2)) +
+  coord_cartesian(ylim = c(-20,20)) +
+  annotation_custom(text) 
+
+SWA_TPJ_vs_ContributionMinusBelief
+
+# setwd(params$resultsPath)
+# jpeg("SWA_TPJ_vs_ContibutionMinusBelief.jpg", res=1200, unit="cm", width = 8, height = 8)
+# print(SWA_TPJ_vs_ContributionMinusBelief)
+# dev.off()
+```
+Figure 3C. Scatterplot of the positive correlation between mean relative SWA in the significant cluster over the right TPJ and prosocial preferences (including regression line and confidence interval 95%).
+
+<br><br>
+Click on show for the partial correlations
+```{r wnSWAScalpContributionMinusBeliefPartialcorrelations, results='hide'}
+
+## Statistical analysis 
+# correct for Total Sleep Time, Time spent in N2 and N3
+pcor.test(PGGdata$SWA_TPJ, PGGdata$PGG_ContributionMinusBelief, PGGdata$totsleep_min, method = c("pearson"))
+pcor.test(PGGdata$SWA_TPJ, PGGdata$PGG_ContributionMinusBelief, (PGGdata$n2_min + PGGdata$n3_min), method = c("pearson"))
+
+# correct for Total Sleep Time, Time spent in N2 and N3
+pcor.test(PGGdata$SWA_TPJ, PGGdata$PGG_ContributionMinusBelief, c(PGGdata$sex, PGGdata$age), method = c("pearson"))
+```
+
+## Sleep Cycles (Figure 5)
+```{r CyclesSWAScalpContributionMinusBelief, fig.width=8, fig.height=6}
+
+############################
+# Figure 5: Cycle Analysis #
+############################
+
+# Cycle 1 
+SWAContributionMinusBeliefC1 <-cor.test(PGGdata$SWA_TPJ_C1, PGGdata$PGG_ContributionMinusBelief, method = c("pearson"))
+
+text_C1 <- grobTree(textGrob("r(52) = 0.48, p = 0.00025", x=0.1,  y=0.9, hjust=0, gp=gpar(fontsize=sizef2)))
+
+SWA_TPJ_vs_ContributionMinusBelief_C1 <-
+  ggplot(data=PGGdata, aes(x=SWA_TPJ_C1, y=PGG_ContributionMinusBelief)) +
+  geom_point(shape=16, size=2)  +  
+  theme_bw () +  
+  theme(panel.grid.major = element_blank(),  # remove grid lines
+        panel.grid.minor = element_blank()) +
+  stat_smooth(method=lm, colour="red", se=TRUE, alpha=0.2, fill="red")  +    # Add regression line
+  xlab("SWA over the right TPJ (log) \nin sleep cycle 1") +
+  ylab("Contribution-minus-belief score") +
+  theme (
+    axis.title.x = element_text(size=sizef2),
+    axis.text.x = element_text(size=sizef2),
+    axis.title.y = element_text(size=sizef2),
+    axis.text.y = element_text(size=sizef2)) +
+    coord_cartesian(ylim = c(-20,20)) +
+  theme(plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))+
+  annotation_custom(text_C1)
+
+
+# Cycle 2
+SWAContributionMinusBeliefC2 <-cor.test(PGGdata$SWA_TPJ_C2, PGGdata$PGG_ContributionMinusBelief, method = c("pearson"))
+
+text_C2 <- grobTree(textGrob("r(52) = 0.45, p = 0.00064", x=0.1,  y=0.9, hjust=0, gp=gpar(fontsize=sizef2)))
+
+SWA_TPJ_vs_ContributionMinusBelief_C2 <-
+  ggplot(data=PGGdata, aes(x=SWA_TPJ_C2, y=PGG_ContributionMinusBelief)) +
+  geom_point(shape=16, size=2)  +  
+  theme_bw () +  
+  theme(panel.grid.major = element_blank(),  # remove grid lines
+        panel.grid.minor = element_blank()) +
+  stat_smooth(method=lm, colour="red", se=TRUE, alpha=0.2, fill="red")  +    # Add regression line
+  xlab("SWA over the right TPJ (log) \nin sleep cycle 2") +
+  ylab("Contribution-minus-belief score") +
+  theme (
+    axis.title.x = element_text(size=sizef2),
+    axis.text.x = element_text(size=sizef2),
+    axis.title.y = element_text(size=sizef2),
+    axis.text.y = element_text(size=sizef2)) +
+    coord_cartesian(ylim = c(-20,20)) +
+  theme(plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))+
+  annotation_custom(text_C2)
+
+
+# Cycle 3
+SWAContributionMinusBeliefC3 <- cor.test(PGGdata$SWA_TPJ_C3, PGGdata$PGG_ContributionMinusBelief, method = c("pearson"))
+
+text_C3 <- grobTree(textGrob("r(51) = 0.44, p = 0.00101", x=0.1,  y=0.9, hjust=0, gp=gpar(fontsize=sizef2)))
+
+SWA_TPJ_vs_ContributionMinusBelief_C3 <-
+  ggplot(data=PGGdata, aes(x=SWA_TPJ_C3, y=PGG_ContributionMinusBelief)) +
+  geom_point(shape=16, size=2)  +  
+  theme_bw () +  
+  theme(panel.grid.major = element_blank(),  # remove grid lines
+        panel.grid.minor = element_blank()) +
+  stat_smooth(method=lm, colour="red", se=TRUE, alpha=0.2, fill="red")  +    # Add regression line
+  xlab("SWA over the right TPJ (log) \nin sleep cycle 3") +
+  ylab("Contribution-minus-belief score") +
+  theme (
+    axis.title.x = element_text(size=sizef2),
+    axis.text.x = element_text(size=sizef2),
+    axis.title.y = element_text(size=sizef2),
+    axis.text.y = element_text(size=sizef2)) +
+  coord_cartesian(ylim = c(-20,20)) +
+  theme(plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))+
+  annotation_custom(text_C3)
+
+
+# Cycle 4
+SWAContributionMinusBeliefC4 <- cor.test(PGGdata$SWA_TPJ_C4, PGGdata$PGG_ContributionMinusBelief, method = c("pearson"))
+
+text_C4 <- grobTree(textGrob("r(50) = 0.41, p = 0.00262", x=0.1,  y=0.9, hjust=0, gp=gpar(fontsize=sizef2)))
+
+SWA_TPJ_vs_ContributionMinusBelief_C4 <-
+  ggplot(data=PGGdata, aes(x=SWA_TPJ_C4, y=PGG_ContributionMinusBelief)) +
+  geom_point(shape=16, size=2)  +  
+  theme_bw () +  
+  theme(panel.grid.major = element_blank(),  # remove grid lines
+        panel.grid.minor = element_blank()) +
+  stat_smooth(method=lm, colour="red", se=TRUE, alpha=0.2, fill="red")  +    # Add regression line
+  xlab("SWA over the right TPJ (log) \nin sleep cycle 4") +
+  ylab("Contribution-minus-belief score") +
+  theme (
+    axis.title.x = element_text(size=sizef2),
+    axis.text.x = element_text(size=sizef2),
+    axis.title.y = element_text(size=sizef2),
+    axis.text.y = element_text(size=sizef2)) +
+  coord_cartesian(ylim = c(-20,20)) +
+  theme(plot.margin = unit(c(0.5,0.5,0.5,0.5), "cm"))+ 
+  annotation_custom(text_C4)
+
+allVariables.scatterplot <- 
+  ggarrange(SWA_TPJ_vs_ContributionMinusBelief_C1, 
+            SWA_TPJ_vs_ContributionMinusBelief_C2,
+            SWA_TPJ_vs_ContributionMinusBelief_C3,
+            SWA_TPJ_vs_ContributionMinusBelief_C4,
+            labels = c("A", "B", "C", "D"),
+            nrow = 2,
+            ncol = 2,
+            heights =  c(1, 1))
+
+allVariables.scatterplot
+# setwd(params$resultsPath)
+# jpeg("Scatterplots_Cycles.jpg", res=1200, unit="cm", width = 20, height = 18)
+# print(allVariables.scatterplot)
+# dev.off()
+```
+Figure 5 (Scatterplots only).Scatterplots of the positive relationships between mean relative SWA in the significant cluster over the right TPJ and prosocial preferences (including regression lines and confidence intervals 95%) for sleep cycle 1 (A), sleep cycle 2 (B), sleep cycle 3 (C), and sleep cycle 4 (D).
+
+<br><br>
+
+Correlation between relative SWA of the second, third and fourth sleep cycles pooled together with prosocial preferences. 
+```{r CyclesSWAScalpContributionMinusBeliefpooledC2C4, fig.width=8, fig.height=6}
+# Cycles 2-4 Pooled 
+PGGdata$SWA_TPJ_C234 <-rowMeans(PGGdata[, c("SWA_TPJ_C2","SWA_TPJ_C3","SWA_TPJ_C4")], na.rm=TRUE)
+
+cor.test(PGGdata$SWA_TPJ_C234, PGGdata$PGG_ContributionMinusBelief, method = c("pearson"))
+```
+## Additional Analysis (Figure 6A)
+
+```{r AdditionalAnalysis}
+#######################################
+# Figure 6A: Contribution and Belief  #
+#######################################
+
+PGGdata_long <- gather(PGGdata, condition, points, PGG_Contribution,PGG_Belief) #from wide to long format
+data_long <- PGGdata_long[,c("participantID", "condition", "points")]
+data_long$condition <- factor(data_long$condition, levels=c("PGG_Contribution", "PGG_Belief"))
+
+pairedPlot <- 
+  ggplot(data_long, aes(x=condition, y=points, fill=condition)) +
+  geom_line(aes(group=participantID), size=1, alpha=0.1, position = position_dodge(0.2)) +
+  geom_point(aes(fill=condition, group=participantID), size=3, shape=21, position = position_dodge(0.2)) +
+  theme_pubr () +
+  xlab("") +
+  ylab("Points") +
+  theme (
+    axis.title.x = element_text(size=10),
+    axis.text.x = element_text(size=10),
+    axis.title.y = element_text(size=10),
+    axis.text.y = element_text(size=10)) +
+  scale_fill_manual(values = c("grey", "grey")) +
+  scale_x_discrete(labels=c("PGG_Contribution" = "Contribution", "PGG_Belief" = "Belief")) +
+  theme (legend.position="none")
+print(pairedPlot)
+
+# setwd(params$resultsPath)
+# jpeg("pairedPlot.jpg", res=300, unit="cm", width = 8, height = 8)
+# print(pairedPlot)
+# dev.off()
+
+```
+Figure 6A. Contribution decisions and participants’ beliefs about the average contribution of the other participants. Contribution decisions (left) and  the belief about others contribution (right) are depicted for each participant. Decisions and corresponding beliefs per participants are – joined by line
+
+
